@@ -29,3 +29,19 @@ deno task build:frontend
 ```
 deno task build:worker
 ```
+6.
+```
+make Chrome
+```
+7.
+Ouvrir Chrome
+
+8.
+aller à chrome://extensions/
+
+9.
+activer Mode développeur en haut à droite
+
+10.
+cliquer sur Charger l'extension non empaquetée et choisir le dossier Rosttatime
+
