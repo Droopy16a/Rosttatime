@@ -4,9 +4,9 @@ DENO=deno
 
 all: mozilla
 
-mozilla: rosettastonks.xpi
+mozilla: rosettastime.xpi
 
-rosettastonks.xpi: frontend worker static/* ./mozilla/manifest.json
+rosettastime.xpi: frontend worker static/* ./mozilla/manifest.json
 	cp ./mozilla/manifest.json .
 	zip -FS -r $@ manifest.json dist/ static/
 
@@ -25,4 +25,4 @@ worker: ./dist/worker.esm.js
 	$(DENO) task build:worker
 
 clean:
-	$(RM) -r dist manifest.json rosettastonks.xpi
+	$(RM) -r dist manifest.json rosettastime.xpi

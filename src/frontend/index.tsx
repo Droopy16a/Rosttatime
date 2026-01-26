@@ -20,7 +20,7 @@ function App(): JSX.Element {
   return (
     <>
       <div className="top">
-        <h1>Rosetta stonks</h1>
+        <h1>Rosettatime</h1>
       </div>
       <ErrorBanner error={error} />
       <TimeForm service={service} onError={setError} />

@@ -1,6 +1,6 @@
 # vi: tabstop=2 shiftwidth=2
 {
-  description = "A development flake for rosetta stonks project";
+  description = "A development flake for Rosettatime project";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -93,7 +93,7 @@
           in
           {
             mozilla = buildDenoPackage {
-              pname = "rosettastonks.xpi";
+              pname = "rosettastime.xpi";
               denoHash = "sha256-RK23SEW2uIfW9d4P+cYGI5nZ5o/1Nh5YJ6Ogkyiud/E=";
               src = ./.;
 
@@ -107,14 +107,14 @@
 
               installPhase = ''
                 runHook preInstall
-                cp rosettastonks.xpi $out
+                cp rosettastime.xpi $out
                 runHook postInstall
               '';
 
             };
             chrome = buildDenoPackage {
 
-              pname = "rosettastonks-chrome";
+              pname = "rosettastime-chrome";
               denoHash = "sha256-qPhzIYqoreMzLKNKKvUdGIPzPkied3qpZ9A6Di31OFE=";
               src = ./.;
 

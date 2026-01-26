@@ -4,4 +4,4 @@ import { setupTabListeners } from "./tab.ts";
 setupListeners();
 setupTabListeners();
 
-console.info("Successfully started RosettaStonks");
+console.info("Successfully started Rosettatime");
