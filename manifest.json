@@ -1,6 +1,6 @@
 {
-  "name": "RosettaStonks",
-  "description": "Enhances your rosetta stone performances",
+  "name": "RosettaTime",
+  "description": "...",
   "version": "3.0.6",
   "manifest_version": 3,
   "background": {
@@ -8,7 +8,7 @@
   },
   "action": {
     "default_popup": "/static/index.html",
-    "default_icon": "/static/rosettastonks-48.png",
+    "default_icon": "/static/rosettatime-48.png",
     "default_title": "rosetta stonks"
   },
   "permissions": ["storage", "webRequest", "webRequestBlocking", "tabs", "scripting", "activeTab"],
@@ -16,8 +16,8 @@
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
   "icons": {
-    "48": "/static/rosettastonks-48.png",
-    "512": "/static/rosettastonks-512.png"
+    "48": "/static/rosettatime-48.png",
+    "512": "/static/rosettatime-512.png"
   },
   "host_permissions": [
     "*://totale.rosettastone.com/",
