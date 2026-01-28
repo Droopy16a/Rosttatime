@@ -31,7 +31,7 @@ deno task build:worker
 ```
 6.
 ```
-make Chrome
+make chrome
 ```
 7.
 Ouvrir Chrome
