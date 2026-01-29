@@ -10,12 +10,14 @@ import { getProduct, getTab, Product } from "../lib/product.ts";
 export enum Feature {
   AddTime,
   ValidateLesson,
+  AddProgress,
 }
 
 export interface Service {
   isFeatureReady(feature: Feature): Promise<boolean>;
   addTime(time: Date): Promise<void>;
   validateLesson(): Promise<void>;
+  addProgress(score?: number): Promise<void>;
 }
 
 async function getRequest(key: string): Promise<Request | undefined> {
@@ -99,8 +101,31 @@ export class FluencyBuilderService implements Service {
     console.debug("successfully sent request");
   }
 
-  validateLesson(): Promise<void> {
-    throw new Error("TODO: not implemented");
+  async addProgress(score?: number): Promise<void> {
+    const req = await getRequest(FluencyBuilderTimeRequestKey);
+    if (req === undefined || req.body === null)
+      throw Error("Could not add progress");
+
+    const body = JSON.parse(req.body);
+    // Update each message with fresh UUIDs and optional score
+    for (let i = 0; i < body.variables.messages.length; i++) {
+      const msg = body.variables.messages[i];
+      msg.activityAttemptId = uuid.v1.generate();
+      msg.activityStepAttemptId = uuid.v1.generate();
+      msg.endTimestamp = new Date().toISOString();
+      if (score !== undefined) {
+        msg.score = score;
+      }
+    }
+    req.body = JSON.stringify(body);
+
+    console.debug("sending progress request", req);
+
+    // needs to use this method, as the backend checks for the Origin
+    // header which cannot manually be set.
+    await sendRequest(req);
+
+    console.debug("successfully sent progress request");
   }
 }
 
@@ -226,5 +251,9 @@ export class FoundationsService implements Service {
         }),
       ),
     );
+  }
+
+  async addProgress(): Promise<void> {
+    throw new Error("AddProgress not supported for Foundations product");
   }
 }

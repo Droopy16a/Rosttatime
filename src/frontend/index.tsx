@@ -1,5 +1,7 @@
 import ReactDOM from "react-dom/client";
 import React, { JSX, useEffect, useState } from "react";
+import { addProgress } from './addProgress';
+
 import TimeForm from "./components/TimeForm.tsx";
 import ValidateForm from "./components/ValidateForm.tsx";
 import { getService, Service } from "./service.ts";
