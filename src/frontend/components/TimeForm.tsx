@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { Feature, Service } from "../service.ts";
 import MissingFeatureBanner from "./MissingFeatureBanner.tsx";
 import { getCoursesAndProgress, getSequence, titleToSlug, addProgressForActivity } from "../addProgress.ts";
@@ -26,12 +26,35 @@ interface TimeFormProps {
 }
 
 export default function TimeForm({ service, onError }: TimeFormProps): JSX.Element {
+  const [minutes, setMinutes] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [touched, setTouched] = useState<boolean>(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    if (minutes <= 0 || !service) return;
+    setIsSubmitting(true);
+    setSuccessMessage(null);
+    try {
+      await service.addTime(new Date(minutes * 60 * 1000));
+      setMinutes(0);
+      setSuccessMessage("Temps ajouté !");
+      setTouched(false);
+    } catch (err: any) {
+      onError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const [available, setAvailable] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [sequences, setSequences] = useState<SequenceItem[]>([]);
   const [processing, setProcessing] = useState<boolean>(false);
   const [result, setResult] = useState<string | null>(null);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<Record<number, number | null>>({});
 
   // Load sequences from courses
   const handleLoadSequences = async () => {
@@ -112,18 +135,34 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
     } else if (!seq.selected) {
       // Deselect all activities when deselecting sequence
       seq.activities = seq.activities.map((act) => ({ ...act, selected: false }));
+      setLastSelectedIndex((prev) => ({ ...prev, [index]: null }));
     }
 
     setSequences(newSequences);
   };
 
   // Toggle activity selection
-  const handleToggleActivity = (seqIndex: number, actIndex: number) => {
+  const handleToggleActivity = (seqIndex: number, actIndex: number, shift = false) => {
     setSequences((prev) => {
       const newSeqs = [...prev];
-      newSeqs[seqIndex].activities[actIndex].selected = !newSeqs[seqIndex].activities[actIndex].selected;
+      const seq = newSeqs[seqIndex];
+
+      if (shift && lastSelectedIndex[seqIndex] != null) {
+        const last = lastSelectedIndex[seqIndex]!;
+        const start = Math.min(last, actIndex);
+        const end = Math.max(last, actIndex);
+        const shouldSelect = !seq.activities[actIndex].selected;
+        for (let i = start; i <= end; i++) {
+          seq.activities[i] = { ...seq.activities[i], selected: shouldSelect };
+        }
+      } else {
+        seq.activities[actIndex] = { ...seq.activities[actIndex], selected: !seq.activities[actIndex].selected };
+      }
+
       return newSeqs;
     });
+
+    setLastSelectedIndex((prev) => ({ ...prev, [seqIndex]: actIndex }));
   };
 
   // Select all sequences
@@ -140,6 +179,22 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
         activities: seq.activities.map((act) => ({ ...act, selected: false })),
       }))
     );
+  };
+
+  // Select all activities for a single sequence (if loaded)
+  const handleSelectAllActivities = (seqIndex: number) => {
+    setSequences((prev) => {
+      const newSeqs = [...prev];
+      const seq = newSeqs[seqIndex];
+      seq.activities = seq.activities.map((act) => ({ ...act, selected: true }));
+      seq.selected = true;
+      return newSeqs;
+    });
+  };
+
+  // Select all activities in all loaded sequences
+  const handleGlobalSelectAllActivities = () => {
+    setSequences((prev) => prev.map((seq) => ({ ...seq, selected: true, activities: seq.activities.map((a) => ({ ...a, selected: true })) })));
   };
 
   // Process selected sequences and activities
@@ -278,11 +333,29 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
   );
 
   return (
-    <div className="container">
+    <div className="container" role="main">
       <div className="section">
-        <h2>Add Progress to Activities</h2>
+        <h2>Add Minutes / Progress</h2>
 
-        <button onClick={handleLoadSequences} disabled={loading} className="btn btn-primary">
+        <form onSubmit={handleSubmit} className="time-form-inline">
+          <input
+            type="number"
+            min={1}
+            placeholder="Minutes"
+            value={minutes}
+            onChange={(e) => setMinutes(Number(e.target.value))}
+            onBlur={() => setTouched(true)}
+            disabled={isSubmitting || loading}
+            className="input-time"
+          />
+          <button type="submit" disabled={isSubmitting || loading} className="btn btn-primary time-btn">
+            {isSubmitting ? "Ca charge..." : "Ajouter Minutes"}
+          </button>
+        </form>
+
+        <div style={{ height: 12 }} />
+
+        <button aria-label="Load sequences" onClick={handleLoadSequences} disabled={loading || isSubmitting} className="btn btn-primary">
           {loading ? "Loading..." : "Load Sequences"}
         </button>
 
@@ -292,10 +365,13 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
           <div className="sequences-section">
             <div className="controls">
               <button onClick={handleSelectAll} className="btn btn-small">
-                Select All
+                Select All Sequences
               </button>
               <button onClick={handleDeselectAll} className="btn btn-small">
                 Deselect All
+              </button>
+              <button onClick={handleGlobalSelectAllActivities} className="btn btn-small">
+                Select All Activities
               </button>
               <span className="counter">
                 {selectedActivitiesCount} activities selected
@@ -308,6 +384,7 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
                   <label className="sequence-item">
                     <input
                       type="checkbox"
+                      aria-label={`Select sequence ${seq.sequenceTitle}`}
                       checked={seq.selected}
                       onChange={() => handleToggleSequence(seqIdx)}
                     />
@@ -315,18 +392,32 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
                     <span className="sequence-name">{seq.sequenceTitle}</span>
                     {seq.loading && <span className="loading">loading...</span>}
                     {seq.selected && seq.activities.length > 0 && (
-                      <span className="activity-count">({seq.activities.length})</span>
+                      <>
+                        <span className="activity-count">({seq.activities.length})</span>
+                        <button
+                          className="btn btn-tiny"
+                          style={{ marginLeft: 8 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAllActivities(seqIdx);
+                          }}
+                        >
+                          Select all activities
+                        </button>
+                      </>
                     )}
                   </label>
 
                   {seq.selected && seq.activities.length > 0 && (
-                    <div className="activities-list">
+                    <div className="activities-list" role="group" aria-label={`Activities for ${seq.sequenceTitle}`}>
                       {seq.activities.map((activity, actIdx) => (
                         <label key={actIdx} className="activity-item">
                           <input
                             type="checkbox"
+                            aria-label={`Select activity ${activity.activityId}`}
                             checked={activity.selected}
-                            onChange={() => handleToggleActivity(seqIdx, actIdx)}
+                            onClick={(e) => handleToggleActivity(seqIdx, actIdx, e.shiftKey)}
+                            onChange={() => { /* controlled by onClick */ }}
                           />
                           <span className="activity-type">{activity.activityType}</span>
                           <span className="activity-id" title={activity.activityId}>
@@ -360,32 +451,33 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
       <style jsx>{`
         .container {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          max-width: 700px;
-          margin: 20px auto;
-          padding: 20px;
+          max-width: 360px;
+          width: 100%;
+          margin: 8px auto;
+          padding: 8px;
         }
 
         .section {
           background: #fff;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          padding: 20px;
+          border-radius: 6px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+          padding: 12px;
         }
 
         h2 {
-          margin: 0 0 20px 0;
-          font-size: 20px;
+          margin: 0 0 12px 0;
+          font-size: 16px;
           color: #333;
         }
 
         .btn {
-          padding: 10px 16px;
+          padding: 8px 12px;
           border: none;
           border-radius: 4px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
-          transition: all 0.2s;
+          transition: all 0.16s;
         }
 
         .btn:disabled {
@@ -397,7 +489,7 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
           background: #007bff;
           color: #fff;
           width: 100%;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .btn-primary:hover:not(:disabled) {
@@ -460,9 +552,9 @@ export default function TimeForm({ service, onError }: TimeFormProps): JSX.Eleme
         .sequences-list {
           border: 1px solid #ddd;
           border-radius: 4px;
-          max-height: 600px;
+          max-height: 420px;
           overflow-y: auto;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .sequence-group {

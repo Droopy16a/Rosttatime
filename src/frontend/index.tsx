@@ -15,26 +15,13 @@ function App(): JSX.Element {
     getService().then(setService).catch(setError);
   }, []);
 
-  const onClearCache = async () => {
-    await browser.storage.session.clear();
-  };
-
   return (
-    <>
-      <div className="top">
-        <h1>Rosettatime</h1>
-      </div>
-      <ErrorBanner error={error} />
+    <div style={{ width: '100%', height: '100%' }}>
       <TimeForm service={service} onError={setError} />
-      <ValidateForm service={service} onError={setError} />
-      <div className="clear-cache">
-        <button onClick={onClearCache}>vider le cache</button>
-      </div>
-      <p style={{color : "white"}}>Cadeau fro</p>
-    </>
+      {error && <div style={{ color: 'red', fontSize: 12 }}>{error.message}</div>}
+    </div>
   );
 }
 
-const root = document.querySelector("#root");
-
-ReactDOM.createRoot(root).render(<App />);
+const rootEl = document.getElementById("root") || document.body;
+ReactDOM.createRoot(rootEl).render(<App />);
