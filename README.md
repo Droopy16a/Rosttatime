@@ -18,6 +18,7 @@ wsl
 4.
 ```
 sudo snap install deno
+sudo apt install make
 ```
 
 5.
